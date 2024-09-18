@@ -1,10 +1,13 @@
 #include <SFML/Graphics.hpp>
+#include "Game.h"
 
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(800, 800), "Chess");
-    
-    
+    Game game = Game();
+    sf::RectangleShape bg = sf::RectangleShape(sf::Vector2f(800, 800));
+    bg.setFillColor(sf::Color::Blue);
+    bg.setPosition(0, 0);
 
     while (window.isOpen())
     {
@@ -27,7 +30,8 @@ int main()
 
         window.clear();
         // render here
-
+        window.draw(bg);
+        game.drawBoard(window);
         window.display();
     }
 
