@@ -25,6 +25,10 @@ int main()
                     window.close();
                     break;
                 }
+                break;
+            case sf::Event::MouseButtonPressed:
+
+                break;
             }
         }
 
