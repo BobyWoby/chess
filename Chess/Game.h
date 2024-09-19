@@ -3,9 +3,12 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <iostream>
-#include <array>
+#include <map>
 
-
+enum pieceId {
+	B_QUEEN, B_KING, B_ROOK, B_KNIGHT, B_BISHOP, B_PAWN,
+	W_QUEEN, W_KING, W_ROOK, W_KNIGHT, W_BISHOP, W_PAWN,
+};
 class Game
 {
 private:
@@ -13,9 +16,9 @@ private:
 	//std::map<int, Piece> pieces;
 	sf::Sprite pieceSprites[12];
 	sf::Texture *pieceTextures[12];
-	uint64_t wp, bp, wb, bb, wKn, bKn, wr, br, wq, bq, wK, bK;
 public:
-	float width = 400, height = 400, s_width = width / 6, offset = 120;
+	uint64_t pieces[12];
+	float s_width = 60, offset = (800 - s_width * 8) / 2;
 	Game() {
 		whiteSquare = sf::RectangleShape(sf::Vector2f(s_width, s_width));
 		whiteSquare.setFillColor(sf::Color::White);
@@ -34,15 +37,42 @@ public:
 		resetBoard();
 	}
 	void resetBoard() {
-		wp = 0b0000000011111111000000000000000000000000000000000000000000000000;
-		wb = 0b0010010000000000000000000000000000000000000000000000000000000000;
-		wKn= 0b0100001000000000000000000000000000000000000000000000000000000000;
-		wr = 0b1000000100000000000000000000000000000000000000000000000000000000;
-		wq = 0b0001000000000000000000000000000000000000000000000000000000000000;
-		wK = 0b0000100000000000000000000000000000000000000000000000000000000000;
-		bp = 0b0000000000000000000000000000000000000000000000001111111100000000;
-		bb = 0b0000000000000000000000000000000000000000000000000010010000000000;
-		bK = 0b0000000000000000000000000000000000000000000000000001000000000000;
+		pieces[W_PAWN]   = 0b0000000011111111000000000000000000000000000000000000000000000000;
+		pieces[W_BISHOP] = 0b0010010000000000000000000000000000000000000000000000000000000000;
+		pieces[W_KNIGHT] = 0b0100001000000000000000000000000000000000000000000000000000000000;
+		pieces[W_ROOK]   = 0b1000000100000000000000000000000000000000000000000000000000000000;
+		pieces[W_QUEEN]  = 0b0000100000000000000000000000000000000000000000000000000000000000;
+		pieces[W_KING]   = 0b0001000000000000000000000000000000000000000000000000000000000000;
+		
+		pieces[B_PAWN]   = 0b0000000000000000000000000000000000000000000000001111111100000000;
+		pieces[B_BISHOP] = 0b0000000000000000000000000000000000000000000000000000000000100100;
+		pieces[B_KNIGHT] = 0b0000000000000000000000000000000000000000000000000000000001000010;
+		pieces[B_ROOK]   = 0b0000000000000000000000000000000000000000000000000000000010000001;
+		pieces[B_QUEEN]  = 0b0000000000000000000000000000000000000000000000000000000000001000;
+		pieces[B_KING]   = 0b0000000000000000000000000000000000000000000000000000000000010000;
+	}
+	uint64_t posToBinary(int pos[]) {
+		int digit = pos[0] + pos[1] * 8;
+		return (uint64_t)1 << (digit);
+	}
+	void drawPiece(sf::RenderWindow& window, uint64_t bitboard, int pieceIndex) {
+		int digit = 0;
+		for (uint64_t i = bitboard; i != 0; i /= 2) {
+			if (i & 0x1) {
+				pieceSprites[pieceIndex].setPosition(sf::Vector2f((digit % 8) * s_width + offset, (int)(digit / 8) * s_width + offset));
+				window.draw(pieceSprites[pieceIndex]);
+			}
+			digit++;
+		}
+	}
+	void movePiece(int pieceIndex, sf::Vector2i piecePos, sf::Vector2i newPos) {
+		int pPos[2] = { piecePos.x, piecePos.y };
+		int nPos[2] = { newPos.x, newPos.y };
+		uint64_t mask1 = posToBinary(nPos);
+		uint64_t mask2 = posToBinary(pPos);
+		uint64_t maskFinal = mask1 | mask2;
+		pieces[pieceIndex] = pieces[pieceIndex] ^ maskFinal;
+		//std::cout << pieces[pieceIndex] << std::endl;
 	}
 
 	void drawBoard(sf::RenderWindow& window) {
@@ -58,58 +88,12 @@ public:
 					window.draw(blackSquare);
 					blackSquare.setPosition(s_width * i + offset, s_width * j + offset);
 				}
-
 			}
 		}
 
 		// render the pieces
-		int digit = 0;
-		for (uint64_t i = wp; i != 0; i /= 2) {
-			if (i & 0x1) {
-				pieceSprites[11].setPosition(sf::Vector2f((digit % 8) * s_width + offset, (int)(digit / 8) * s_width + offset));
-				window.draw(pieceSprites[11]);
-			}
-			digit++;
-		}
-		digit = 0;
-		for (uint64_t i = wb; i != 0; i /= 2) {
-			if (i & 0x1) {
-				pieceSprites[10].setPosition(sf::Vector2f((digit % 8) * s_width + offset, (int)(digit / 8) * s_width + offset));
-				window.draw(pieceSprites[10]);
-			}
-			digit++;
-		}
-		digit = 0;
-		for (uint64_t i = wKn; i != 0; i /= 2) {
-			if (i & 0x1) {
-				pieceSprites[9].setPosition(sf::Vector2f((digit % 8) * s_width + offset, (int)(digit / 8) * s_width + offset));
-				window.draw(pieceSprites[9]);
-			}
-			digit++;
-		}
-		digit = 0;
-		for (uint64_t i = wr; i != 0; i /= 2) {
-			if (i & 0x1) {
-				pieceSprites[8].setPosition(sf::Vector2f((digit % 8) * s_width + offset, (int)(digit / 8) * s_width + offset));
-				window.draw(pieceSprites[8]);
-			}
-			digit++;
-		}
-		digit = 0;
-		for (uint64_t i = wK; i != 0; i /= 2) {
-			if (i & 0x1) {
-				pieceSprites[7].setPosition(sf::Vector2f((digit % 8) * s_width + offset, (int)(digit / 8) * s_width + offset));
-				window.draw(pieceSprites[7]);
-			}
-			digit++;
-		}
-		digit = 0;
-		for (uint64_t i = wq; i != 0; i /= 2) {
-			if (i & 0x1) {
-				pieceSprites[6].setPosition(sf::Vector2f((digit % 8) * s_width + offset, (int)(digit / 8) * s_width + offset));
-				window.draw(pieceSprites[6]);
-			}
-			digit++;
+		for (int i = 0; i < 12; i++) {
+			drawPiece(window, pieces[i], i);
 		}
 	}
 };
