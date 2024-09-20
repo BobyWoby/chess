@@ -1,10 +1,12 @@
 #include <SFML/Graphics.hpp>
 #include "Game.h"
 
-void posToSquare(sf::Vector2i position, Game &game, int output[]) {
+bool posToSquare(sf::Vector2i position, Game &game, int output[]) {
     // this returns a 2 element array pointer
     output[0] = (position.x - game.offset) / game.s_width;
     output[1] = (position.y - game.offset) / game.s_width;
+    //if(output[0] >= 0 && output[0] <8)
+    return (output[0] >= 0 && output[0] < 8 && output[1] >= 0 && output[1] < 8);
 }
 
 int main()
@@ -16,6 +18,10 @@ int main()
     sf::RectangleShape bg = sf::RectangleShape(sf::Vector2f(width, height));
     bg.setFillColor(sf::Color::Blue);
     bg.setPosition(0, 0);
+    
+    bool clickedPiece = false, mvmtBuffer = false;
+    uint64_t pieceBuffer = 0;
+    int pieceIdBuffer = 0;
 
     while (window.isOpen())
     {
@@ -32,16 +38,45 @@ int main()
                 case sf::Keyboard::Scan::Escape:
                     window.close();
                     break;
+                case sf::Keyboard::Scan::R:
+                    game.resetBoard();
+                    break;
                 }
                 break;
             case sf::Event::MouseButtonPressed:
-                /*sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-                std::cout << mousePos.x << ", " << mousePos.y << std::endl;
+                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
                 int square[2];
-                posToSquare(mousePos, game, square);
-                std::cout << "Square: " << square[0] << ", " << square[1] << std::endl;*/
-                game.movePiece(W_PAWN, sf::Vector2i(4, 6), sf::Vector2i(4, 5));
-                //game.pieces[W_PAWN]
+                if (posToSquare(mousePos, game, square)) {
+                    if (clickedPiece) {
+                        uint64_t pos2 = game.posToBinary(square);
+                        if (pos2 ^ pieceBuffer) {
+
+                            // check if the piece overlaps with another piece
+                            for (int i = 0; i < 12; i++) {
+                                if (i == pieceIdBuffer) {continue;}
+                                if (pos2 & game.pieces[i]) {
+                                    game.pieces[i] = game.pieces[i] ^ pos2;
+                                }
+                            }
+
+                            if (!(game.pieces[pieceIdBuffer] & pos2)) game.movePiece(pieceIdBuffer, pieceBuffer, pos2);
+                        }
+                        mvmtBuffer = true;
+                        clickedPiece = false;
+                    }
+                    for (int i = 0; i < 12; i++) {
+                        if (game.posToBinary(square) & game.pieces[i]) {
+                            if(!mvmtBuffer && !clickedPiece){
+                                clickedPiece = true;
+                            }
+                            else {
+                                mvmtBuffer = false;
+                            }
+                            pieceBuffer = game.posToBinary(square);
+                            pieceIdBuffer = i;
+                        }
+                    }
+                }
                 break;
             }
         }

@@ -13,12 +13,12 @@ class Game
 {
 private:
 	sf::RectangleShape whiteSquare, blackSquare;
-	//std::map<int, Piece> pieces;
 	sf::Sprite pieceSprites[12];
 	sf::Texture *pieceTextures[12];
 public:
 	uint64_t pieces[12];
-	float s_width = 60, offset = (800 - s_width * 8) / 2;
+	uint64_t blackPieces = 0, whitePieces = 0, allPieces = 0;
+	float s_width = 64, offset = (800 - s_width * 8) / 2;
 	Game() {
 		whiteSquare = sf::RectangleShape(sf::Vector2f(s_width, s_width));
 		whiteSquare.setFillColor(sf::Color::White);
@@ -36,6 +36,11 @@ public:
 		}
 		resetBoard();
 	}
+	~Game() {
+		for (int i = 0; i < 12; i++) {
+			delete pieceTextures[i];
+		}
+	}
 	void resetBoard() {
 		pieces[W_PAWN]   = 0b0000000011111111000000000000000000000000000000000000000000000000;
 		pieces[W_BISHOP] = 0b0010010000000000000000000000000000000000000000000000000000000000;
@@ -50,6 +55,13 @@ public:
 		pieces[B_ROOK]   = 0b0000000000000000000000000000000000000000000000000000000010000001;
 		pieces[B_QUEEN]  = 0b0000000000000000000000000000000000000000000000000000000000001000;
 		pieces[B_KING]   = 0b0000000000000000000000000000000000000000000000000000000000010000;
+		for (int i = 0; i < 6; i++) {
+			blackPieces = blackPieces | pieces[i];
+		}
+		for (int i = 6; i < 12; i++) {
+			whitePieces = whitePieces | pieces[i];
+		}
+
 	}
 	uint64_t posToBinary(int pos[]) {
 		int digit = pos[0] + pos[1] * 8;
@@ -65,6 +77,14 @@ public:
 			digit++;
 		}
 	}
+	void updateBbs(int pieceIndex, uint64_t mask) {
+		if (pieceIndex < 6) {
+			blackPieces = blackPieces ^ mask;
+		}
+		else {
+			whitePieces = whitePieces ^ mask;
+		}
+	}
 	void movePiece(int pieceIndex, sf::Vector2i piecePos, sf::Vector2i newPos) {
 		int pPos[2] = { piecePos.x, piecePos.y };
 		int nPos[2] = { newPos.x, newPos.y };
@@ -72,7 +92,19 @@ public:
 		uint64_t mask2 = posToBinary(pPos);
 		uint64_t maskFinal = mask1 | mask2;
 		pieces[pieceIndex] = pieces[pieceIndex] ^ maskFinal;
-		//std::cout << pieces[pieceIndex] << std::endl;
+		updateBbs(pieceIndex, maskFinal);
+	}
+	void movePiece(int pieceIndex, int piecePos[], int newPos[]) {
+		uint64_t mask1 = posToBinary(piecePos);
+		uint64_t mask2 = posToBinary(newPos);
+		uint64_t maskFinal = mask1 | mask2;
+		pieces[pieceIndex] = pieces[pieceIndex] ^ maskFinal;
+		updateBbs(pieceIndex, maskFinal);
+	}
+	void movePiece(int pieceIndex, uint64_t piecePos, uint64_t newPos) {
+		uint64_t maskFinal = piecePos | newPos;
+		pieces[pieceIndex] = pieces[pieceIndex] ^ maskFinal;
+		updateBbs(pieceIndex, maskFinal);
 	}
 
 	void drawBoard(sf::RenderWindow& window) {
