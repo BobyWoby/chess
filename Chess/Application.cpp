@@ -9,6 +9,7 @@ bool posToSquare(sf::Vector2i position, Game &game, int output[]) {
     return (output[0] >= 0 && output[0] < 8 && output[1] >= 0 && output[1] < 8);
 }
 
+
 int main()
 {
     int width, height;
@@ -49,31 +50,36 @@ int main()
                 if (posToSquare(mousePos, game, square)) {
                     if (clickedPiece) {
                         uint64_t pos2 = game.posToBinary(square);
-                        if (pos2 ^ pieceBuffer) {
+                        if (game.isLegalMove(pieceIdBuffer, pos2, pieceBuffer)) {
 
-                            // check if the piece overlaps with another piece
+                            // check if the piece overlaps with another piece, if it does, remove that piece
                             for (int i = 0; i < 12; i++) {
                                 if (i == pieceIdBuffer) {continue;}
                                 if (pos2 & game.pieces[i]) {
-                                    game.pieces[i] = game.pieces[i] ^ pos2;
+                                    game.updateBbs(i, pos2);
                                 }
                             }
 
                             if (!(game.pieces[pieceIdBuffer] & pos2)) game.movePiece(pieceIdBuffer, pieceBuffer, pos2);
+                            mvmtBuffer = true;
+                            clickedPiece = false;
                         }
-                        mvmtBuffer = true;
-                        clickedPiece = false;
+                        else {
+                            mvmtBuffer = true;
+                            clickedPiece = false;
+                        }
                     }
                     for (int i = 0; i < 12; i++) {
                         if (game.posToBinary(square) & game.pieces[i]) {
                             if(!mvmtBuffer && !clickedPiece){
                                 clickedPiece = true;
+                                pieceBuffer = game.posToBinary(square);
+                                pieceIdBuffer = i;
                             }
-                            else {
+                            else if(!clickedPiece) {
                                 mvmtBuffer = false;
                             }
-                            pieceBuffer = game.posToBinary(square);
-                            pieceIdBuffer = i;
+                            
                         }
                     }
                 }
