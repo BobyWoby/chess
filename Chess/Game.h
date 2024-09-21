@@ -1,5 +1,4 @@
 #pragma once
-#include "Piece.h"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <iostream>
