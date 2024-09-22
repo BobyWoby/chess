@@ -70,6 +70,13 @@ bool Game::checkBishop(uint64_t move, uint64_t piece)
 	return false;
 }
 
+bool Game::checkKnight(uint64_t move, uint64_t piece)
+{
+	uint64_t tmp = piece;
+	//if()
+	return false;
+}
+
 bool Game::isLegalMove(int pieceId, uint64_t inputMove, uint64_t inputPiece)
 {
 	int mvArr[2], pArr[2];

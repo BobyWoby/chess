@@ -15,12 +15,14 @@ private:
 	sf::Sprite pieceSprites[12];
 	sf::Texture *pieceTextures[12];
 
-	bool checkBishop(uint64_t inputMove, uint64_t inputPiece);
+	bool checkBishop(uint64_t move, uint64_t piece);
+	bool checkKnight(uint64_t move, uint64_t piece);
 
 public:
 	uint64_t pieces[12];
 	uint64_t blackPieces = 0, whitePieces = 0, allPieces = 0;
 	float s_width = 64, offset = (800 - s_width * 8) / 2;
+	bool whitesTurn = true;
 	Game() {
 		whiteSquare = sf::RectangleShape(sf::Vector2f(s_width, s_width));
 		whiteSquare.setFillColor(sf::Color::White);

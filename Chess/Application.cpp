@@ -59,28 +59,32 @@ int main()
                                     game.updateBbs(i, pos2);
                                 }
                             }
-
+                             
                             if (!(game.pieces[pieceIdBuffer] & pos2)) game.movePiece(pieceIdBuffer, pieceBuffer, pos2);
-                            mvmtBuffer = true;
+                            //mvmtBuffer = true;
                             clickedPiece = false;
+                            game.whitesTurn = !game.whitesTurn;
                         }
                         else {
-                            mvmtBuffer = true;
-                            clickedPiece = false;
+
+                        mvmtBuffer = true;
+                        clickedPiece = false;
+                        
                         }
                     }
                     for (int i = 0; i < 12; i++) {
                         if (game.posToBinary(square) & game.pieces[i]) {
-                            if(!mvmtBuffer && !clickedPiece){
+                            //clicked on a piece on the board
+                            if(!clickedPiece && ((i >= 6 && game.whitesTurn) || (i <= 5 && !game.whitesTurn))){
                                 clickedPiece = true;
                                 pieceBuffer = game.posToBinary(square);
                                 pieceIdBuffer = i;
                             }
-                            else if(!clickedPiece) {
-                                mvmtBuffer = false;
-                            }
-                            
                         }
+                        /*else {
+                            clickedPiece = false;
+                            mvmtBuffer = true;
+                        }*/
                     }
                 }
                 break;
