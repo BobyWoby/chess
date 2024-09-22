@@ -17,7 +17,16 @@ private:
 
 	bool checkBishop(uint64_t move, uint64_t piece);
 	bool checkKnight(uint64_t move, uint64_t piece);
+	bool checkRook(uint64_t move, uint64_t piece);
+	bool checkPawn(uint64_t move, uint64_t piece);
+	bool checkKing(uint64_t move, uint64_t piece);
 
+	void generateNorthRay(uint64_t square, uint64_t &output);
+	void generateEastRay(uint64_t square, uint64_t  &output);
+	void generateSouthRay(uint64_t square, uint64_t &output);
+	void generateWestRay(uint64_t square, uint64_t  &output);
+	int firstBit(uint64_t number);
+	int lastBit(uint64_t number);
 public:
 	uint64_t pieces[12];
 	uint64_t blackPieces = 0, whitePieces = 0, allPieces = 0;

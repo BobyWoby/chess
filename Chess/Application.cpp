@@ -81,10 +81,6 @@ int main()
                                 pieceIdBuffer = i;
                             }
                         }
-                        /*else {
-                            clickedPiece = false;
-                            mvmtBuffer = true;
-                        }*/
                     }
                 }
                 break;

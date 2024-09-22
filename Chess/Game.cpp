@@ -21,6 +21,7 @@ void Game::resetBoard() {
 	for (int i = 6; i < 12; i++) {
 		whitePieces = whitePieces | pieces[i];
 	}
+	whitesTurn = true;
 }
 
 uint64_t Game::posToBinary(int pos[]) {
@@ -42,28 +43,28 @@ bool Game::checkBishop(uint64_t move, uint64_t piece)
 	uint64_t tmp = piece;
 	bool valid = true;
 	while (tmp != 0 && valid) {
-		tmp = tmp >> 7;
+		tmp >>= 7;
 		if (tmp & whitePieces || tmp & blackPieces) valid = false;
 		if (tmp & move) return true;
 	}
 	tmp = piece;
 	valid = true;
 	while (tmp != 0 && valid) {
-		tmp = tmp >> 9;
+		tmp >>= 9;
 		if (tmp & whitePieces || tmp & blackPieces) valid = false;
 		if (tmp & move) return true;
 	}
 	tmp = piece;
 	valid = true;
 	while (tmp != 0 && valid) {
-		tmp = tmp << 7;
+		tmp <<= 7;
 		if (tmp & whitePieces || tmp & blackPieces) valid = false;
 		if (tmp & move) return true;
 	}
 	tmp = piece;
 	valid = true;
 	while (tmp != 0 && valid) {
-		tmp = tmp << 9;
+		tmp <<= 9;
 		if (tmp & whitePieces || tmp & blackPieces) valid = false;
 		if (tmp & move) return true;
 	}
@@ -72,16 +73,149 @@ bool Game::checkBishop(uint64_t move, uint64_t piece)
 
 bool Game::checkKnight(uint64_t move, uint64_t piece)
 {
-	uint64_t tmp = piece;
-	//if()
+	if ((piece << 6) & move) return true;
+	if ((piece << 10) & move) return true;
+	if ((piece << 15) & move) return true;
+	if ((piece << 17) & move) return true;
+	if ((piece >> 6) & move) return true;
+	if ((piece >> 10) & move) return true;
+	if ((piece >> 15) & move) return true;
+	if ((piece >> 17) & move) return true;
+	return false;
+}
+const int tab64[64] = {
+	63,  0, 58,  1, 59, 47, 53,  2,
+	60, 39, 48, 27, 54, 33, 42,  3,
+	61, 51, 37, 40, 49, 18, 28, 20,
+	55, 30, 34, 11, 43, 14, 22,  4,
+	62, 57, 46, 52, 38, 26, 32, 41,
+	50, 36, 17, 19, 29, 10, 13, 21,
+	56, 45, 25, 31, 35, 16,  9, 12,
+	44, 24, 15,  8, 23,  7,  6,  5 };
+
+int log2_64(uint64_t value)
+{
+	value |= value >> 1;
+	value |= value >> 2;
+	value |= value >> 4;
+	value |= value >> 8;
+	value |= value >> 16;
+	value |= value >> 32;
+	return tab64[((uint64_t)((value - (value >> 1)) * 0x07EDD5E59A4E28C2)) >> 58];
+}
+
+void Game::generateNorthRay(uint64_t square, uint64_t &output) {
+	int col = log2_64(square) % 8;
+	int row = log2_64(square) / 8;
+	output = 0;
+
+	// generate a north-pointing ray
+	for (int i = 0; i < row; i++) {
+		output |= ((uint64_t)1 << col) << (i * 8);
+	}
+}
+
+void Game::generateEastRay(uint64_t square, uint64_t &output) {
+	int col = log2_64(square) % 8;
+	int row = log2_64(square) / 8;
+	output = 0;
+	
+	// generate a east-pointing ray
+	for (int i = col+1; i < 8; i++) {
+		output |= ((uint64_t)1 << row * 8) << i;
+	}
+
+}
+
+void Game::generateSouthRay(uint64_t square, uint64_t &output) {
+	int col = log2_64(square) % 8;
+	int row = log2_64(square) / 8;
+	output = 0;
+
+	// generate a south-pointing ray
+	for (int i = row+1; i < 8; i++) {
+		output |= ((uint64_t)1 << col) << (i * 8);
+	}
+}
+
+// fills output with arrays in never eat soggy waffles order from the perspective of the render
+void Game::generateWestRay(uint64_t square, uint64_t &output) {
+	int col = log2_64(square) % 8;
+	int row = log2_64(square) / 8;
+	output = 0;
+	// generate a west-pointing ray
+	for (int i = 0; i < col; i++) {
+		output |= ((uint64_t)1 << row * 8) << i;
+	}
+}
+int Game::firstBit(uint64_t number) {
+	int cnt = 0;
+	if (number) while (!(number & (1 << cnt++)));
+	return cnt;
+}
+
+int Game::lastBit(uint64_t number) {
+	int cnt = -1;
+	while (number) {
+		cnt++;
+		number >>= 1;
+	}
+	if (!cnt) return 0;
+	return cnt;
+}
+
+bool Game::checkRook(uint64_t move, uint64_t piece)
+{
+	uint64_t allPieces = whitePieces | blackPieces;
+
+	uint64_t rays[4], moveMask = 0;
+	generateNorthRay(piece, rays[0]);
+	generateEastRay( piece, rays[1]);
+	generateSouthRay(piece, rays[2]);
+	generateWestRay( piece, rays[3]);
+
+	uint64_t nBlocker = rays[0] & allPieces;
+	nBlocker = (lastBit(nBlocker) != 0) ? (uint64_t)1 << (lastBit(nBlocker)) : 0;
+	uint64_t nBlockerRay = 0;
+	generateNorthRay(nBlocker, nBlockerRay);
+	moveMask |= rays[0] ^ nBlockerRay;
+
+	uint64_t eBlocker = rays[1] & allPieces;
+	eBlocker = (firstBit(eBlocker) != 0) ? (uint64_t)1 << firstBit(eBlocker) : 0;
+	uint64_t eBlockerRay = 0;
+	generateEastRay(eBlocker, eBlockerRay);
+	moveMask |= rays[1] ^ eBlockerRay;
+	
+	uint64_t sBlocker = rays[2] & allPieces;
+	sBlocker = (firstBit(sBlocker) != 0)? (uint64_t)1 << (firstBit(sBlocker) * 8) : 0;
+	uint64_t sBlockerRay = 0;
+	generateSouthRay(sBlocker, sBlockerRay);
+	moveMask |= rays[2] ^ sBlockerRay;
+
+	uint64_t wBlocker = rays[3] & allPieces;
+	wBlocker = (lastBit(wBlocker) != 0) ? (uint64_t)1 << lastBit(wBlocker) : 0;
+	uint64_t wBlockerRay = 0;
+	generateWestRay(wBlocker, wBlockerRay);
+	moveMask |= rays[3] ^ wBlockerRay;
+
+	return (moveMask & move)? true : false;
+}
+
+bool Game::checkPawn(uint64_t move, uint64_t piece)
+{
+	return false;
+}
+
+bool Game::checkKing(uint64_t move, uint64_t piece)
+{
 	return false;
 }
 
 bool Game::isLegalMove(int pieceId, uint64_t inputMove, uint64_t inputPiece)
 {
-	int mvArr[2], pArr[2];
+	/*int mvArr[2], pArr[2];
 	binToPos(inputMove, mvArr);
-	binToPos(inputPiece, pArr);
+	binToPos(inputPiece, pArr);*/
 	if (pieceId > 5) {
 		//piece is white
 		if (inputMove & whitePieces) return false; // make sure the piece isn't trying to take a piece of the same color
@@ -96,9 +230,16 @@ bool Game::isLegalMove(int pieceId, uint64_t inputMove, uint64_t inputPiece)
 		break;
 	case B_BISHOP:
 		return checkBishop(inputMove, inputPiece);
-		break;
 	case W_BISHOP:
 		return checkBishop(inputMove, inputPiece);
+	case B_KNIGHT:
+		return checkKnight(inputMove, inputPiece);
+	case W_KNIGHT:
+		return checkKnight(inputMove, inputPiece);
+	case B_ROOK:
+		return checkRook(inputMove, inputPiece);
+	case W_ROOK:
+		return checkRook(inputMove, inputPiece);
 	}
 	return true;
 }
