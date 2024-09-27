@@ -138,7 +138,6 @@ void Game::generateSouthRay(uint64_t square, uint64_t &output) {
 	}
 }
 
-// fills output with arrays in never eat soggy waffles order from the perspective of the render
 void Game::generateWestRay(uint64_t square, uint64_t &output) {
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
@@ -203,22 +202,27 @@ bool Game::checkRook(uint64_t move, uint64_t piece)
 
 bool Game::checkPawn(uint64_t move, uint64_t piece, bool isWhite)
 {
+	uint64_t allPieces = whitePieces | blackPieces;
 	if (isWhite) {
-		if (piece & (uint64_t)0xff000000000000) {
-			return move & piece >> 8 || move & piece >> 16;
-		}
-		else if (move & blackPieces) {
+		if (move & blackPieces) {
+			// check if pawn is taking a piece
 			return move & piece >> 7 || move & piece >> 9;
+		}
+		else if (piece & (uint64_t)0xff000000000000) {
+			// on home rank
+			
+			return move & piece >> 8 || (move & piece >> 16 && !((piece >> 8) & (whitePieces | blackPieces)));
 		}
 		else {
 			return move & piece >> 8;
 		}
 	} else {
-		if (piece & (uint64_t)0xff00) {
-			return move & piece << 8 || move & piece << 16;
-		}
-		else if (move & whitePieces) {
+		if (move & whitePieces) {
+			// check if pawn is taking a piece
 			return move & piece << 7 || move & piece << 9;
+		}
+		else if (piece & (uint64_t)0xff00) {
+			return move & piece << 8 || (move & piece << 16 && !((piece << 8) & (whitePieces | blackPieces)));
 		}
 		else {
 			return move & piece << 8;
@@ -267,9 +271,9 @@ bool Game::isLegalMove(int pieceId, uint64_t inputMove, uint64_t inputPiece)
 	case W_ROOK:
 		return checkRook(inputMove, inputPiece);
 	case B_QUEEN:
-		return checkRook(inputMove, inputPiece) || checkBishop(inputMove, inputPiece);
+		return checkBishop(inputMove, inputPiece) || checkRook(inputMove, inputPiece);
 	case W_QUEEN:
-		return checkRook(inputMove, inputPiece) || checkBishop(inputMove, inputPiece);
+		return checkBishop(inputMove, inputPiece) || checkRook(inputMove, inputPiece);
 	case B_KING:
 		return checkKing(inputMove, inputPiece);
 	case W_KING:
