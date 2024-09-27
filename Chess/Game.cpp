@@ -2,19 +2,19 @@
 
 void Game::resetBoard() {
 	whitePieces = blackPieces = 0;
-	pieces[W_PAWN] = 0b0000000011111111000000000000000000000000000000000000000000000000;
-	pieces[W_BISHOP] = 0b0010010000000000000000000000000000000000000000000000000000000000;
-	pieces[W_KNIGHT] = 0b0100001000000000000000000000000000000000000000000000000000000000;
-	pieces[W_ROOK] = 0b1000000100000000000000000000000000000000000000000000000000000000; 
+	//pieces[W_PAWN] = 0b0000000011111111000000000000000000000000000000000000000000000000;
+	//pieces[W_BISHOP] = 0b0010010000000000000000000000000000000000000000000000000000000000;
+	//pieces[W_KNIGHT] = 0b0100001000000000000000000000000000000000000000000000000000000000;
+	//pieces[W_ROOK] = 0b1000000100000000000000000000000000000000000000000000000000000000; 
 	pieces[W_QUEEN] = 0b0000100000000000000000000000000000000000000000000000000000000000;
-	pieces[W_KING] = 0b0001000000000000000000000000000000000000000000000000000000000000;
+	//pieces[W_KING] = 0b0001000000000000000000000000000000000000000000000000000000000000;
 
-	pieces[B_PAWN] = 0b0000000000000000000000000000000000000000000000001111111100000000;
-	pieces[B_BISHOP] = 0b0000000000000000000000000000000000000000000000000000000000100100;
-	pieces[B_KNIGHT] = 0b0000000000000000000000000000000000000000000000000000000001000010;
-	pieces[B_ROOK] = 0b0000000000000000000000000000000000000000000000000000000010000001;
+	//pieces[B_PAWN] = 0b0000000000000000000000000000000000000000000000001111111100000000;
+	//pieces[B_BISHOP] = 0b0000000000000000000000000000000000000000000000000000000000100100;
+	//pieces[B_KNIGHT] = 0b0000000000000000000000000000000000000000000000000000000001000010;
+	//pieces[B_ROOK] = 0b0000000000000000000000000000000000000000000000000000000010000001;
 	pieces[B_QUEEN] = 0b0000000000000000000000000000000000000000000000000000000000001000;
-	pieces[B_KING] = 0b0000000000000000000000000000000000000000000000000000000000010000;
+	//pieces[B_KING] = 0b0000000000000000000000000000000000000000000000000000000000010000;
 	for (int i = 0; i < 6; i++) {
 		blackPieces = blackPieces | pieces[i];
 	}
@@ -40,6 +40,8 @@ void Game::binToPos(uint64_t input, int output[2]) {
 
 bool Game::checkBishop(uint64_t move, uint64_t piece)
 {
+	//TODO: maybe try Move Rays, cuz i dont think this is gonna work, tho there is probably a way to make it work
+
 	uint64_t tmp = piece;
 	bool valid = true;
 	while (tmp != 0 && valid) {
@@ -105,6 +107,11 @@ int log2_64(uint64_t value)
 }
 
 void Game::generateNorthRay(uint64_t square, uint64_t &output) {
+	if (!square)
+	{
+		output = 0;
+		return;
+	}
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
 	output = 0;
@@ -116,10 +123,14 @@ void Game::generateNorthRay(uint64_t square, uint64_t &output) {
 }
 
 void Game::generateEastRay(uint64_t square, uint64_t &output) {
+	if (!square)
+	{
+		output = 0;
+		return;
+	}
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
 	output = 0;
-	
 	// generate a east-pointing ray
 	for (int i = col+1; i < 8; i++) {
 		output |= ((uint64_t)1 << row * 8) << i;
@@ -128,6 +139,11 @@ void Game::generateEastRay(uint64_t square, uint64_t &output) {
 }
 
 void Game::generateSouthRay(uint64_t square, uint64_t &output) {
+	if (!square)
+	{
+		output = 0;
+		return;
+	}
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
 	output = 0;
@@ -139,6 +155,11 @@ void Game::generateSouthRay(uint64_t square, uint64_t &output) {
 }
 
 void Game::generateWestRay(uint64_t square, uint64_t &output) {
+	if (!square)
+	{
+		output = 0;
+		return;
+	}
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
 	output = 0;
@@ -148,8 +169,13 @@ void Game::generateWestRay(uint64_t square, uint64_t &output) {
 	}
 }
 int Game::firstBit(uint64_t number) {
-	int cnt = 0;
-	if (number) while (!(number & (1 << cnt++)));
+	int cnt = -1;
+	//if (number) while (!(number & (1 << cnt++)));
+	while (number) {
+		cnt++;
+		number <<= 1;
+	}
+	if (cnt == -1) return 0;
 	return cnt;
 }
 
@@ -159,7 +185,7 @@ int Game::lastBit(uint64_t number) {
 		cnt++;
 		number >>= 1;
 	}
-	if (!cnt) return 0;
+	if (cnt == -1) return 0;
 	return cnt;
 }
 
@@ -186,7 +212,7 @@ bool Game::checkRook(uint64_t move, uint64_t piece)
 	moveMask |= rays[1] ^ eBlockerRay;
 	
 	uint64_t sBlocker = rays[2] & allPieces;
-	sBlocker = (firstBit(sBlocker) != 0)? (uint64_t)1 << (firstBit(sBlocker) * 8) : 0;
+	sBlocker = (firstBit(sBlocker) != 0)? (uint64_t)1 << (firstBit(sBlocker)) : 0;
 	uint64_t sBlockerRay = 0;
 	generateSouthRay(sBlocker, sBlockerRay);
 	moveMask |= rays[2] ^ sBlockerRay;
