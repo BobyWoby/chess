@@ -201,21 +201,47 @@ bool Game::checkRook(uint64_t move, uint64_t piece)
 	return (moveMask & move)? true : false;
 }
 
-bool Game::checkPawn(uint64_t move, uint64_t piece)
+bool Game::checkPawn(uint64_t move, uint64_t piece, bool isWhite)
 {
+	if (isWhite) {
+		if (piece & (uint64_t)0xff000000000000) {
+			return move & piece >> 8 || move & piece >> 16;
+		}
+		else if (move & blackPieces) {
+			return move & piece >> 7 || move & piece >> 9;
+		}
+		else {
+			return move & piece >> 8;
+		}
+	} else {
+		if (piece & (uint64_t)0xff00) {
+			return move & piece << 8 || move & piece << 16;
+		}
+		else if (move & whitePieces) {
+			return move & piece << 7 || move & piece << 9;
+		}
+		else {
+			return move & piece << 8;
+		}
+	}
 	return false;
 }
 
 bool Game::checkKing(uint64_t move, uint64_t piece)
 {
-	return false;
+	return move & piece << 1 || 
+		move & piece << 7 || 
+		move & piece << 8 || 
+		move & piece << 9 || 
+		move & piece >> 1 || 
+		move & piece >> 7 || 
+		move & piece >> 8 || 
+		move & piece >> 9;
 }
+
 
 bool Game::isLegalMove(int pieceId, uint64_t inputMove, uint64_t inputPiece)
 {
-	/*int mvArr[2], pArr[2];
-	binToPos(inputMove, mvArr);
-	binToPos(inputPiece, pArr);*/
 	if (pieceId > 5) {
 		//piece is white
 		if (inputMove & whitePieces) return false; // make sure the piece isn't trying to take a piece of the same color
@@ -225,9 +251,9 @@ bool Game::isLegalMove(int pieceId, uint64_t inputMove, uint64_t inputPiece)
 	}
 	switch (pieceId) {
 	case B_PAWN:
-		break;
+		return checkPawn(inputMove, inputPiece, false);
 	case W_PAWN:
-		break;
+		return checkPawn(inputMove, inputPiece, true);
 	case B_BISHOP:
 		return checkBishop(inputMove, inputPiece);
 	case W_BISHOP:
@@ -240,6 +266,14 @@ bool Game::isLegalMove(int pieceId, uint64_t inputMove, uint64_t inputPiece)
 		return checkRook(inputMove, inputPiece);
 	case W_ROOK:
 		return checkRook(inputMove, inputPiece);
+	case B_QUEEN:
+		return checkRook(inputMove, inputPiece) || checkBishop(inputMove, inputPiece);
+	case W_QUEEN:
+		return checkRook(inputMove, inputPiece) || checkBishop(inputMove, inputPiece);
+	case B_KING:
+		return checkKing(inputMove, inputPiece);
+	case W_KING:
+		return checkKing(inputMove, inputPiece);
 	}
 	return true;
 }
