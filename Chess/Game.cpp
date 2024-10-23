@@ -2,19 +2,19 @@
 
 void Game::resetBoard() {
 	whitePieces = blackPieces = 0;
-	//pieces[W_PAWN] = 0b0000000011111111000000000000000000000000000000000000000000000000;
-	//pieces[W_BISHOP] = 0b0010010000000000000000000000000000000000000000000000000000000000;
-	//pieces[W_KNIGHT] = 0b0100001000000000000000000000000000000000000000000000000000000000;
-	//pieces[W_ROOK] = 0b1000000100000000000000000000000000000000000000000000000000000000; 
+	pieces[W_PAWN] = 0b0000000011111111000000000000000000000000000000000000000000000000;
+	pieces[W_BISHOP] = 0b0010010000000000000000000000000000000000000000000000000000000000;
+	pieces[W_KNIGHT] = 0b0100001000000000000000000000000000000000000000000000000000000000;
+	pieces[W_ROOK] = 0b1000000100000000000000000000000000000000000000000000000000000000; 
 	pieces[W_QUEEN] = 0b0000100000000000000000000000000000000000000000000000000000000000;
-	//pieces[W_KING] = 0b0001000000000000000000000000000000000000000000000000000000000000;
+	pieces[W_KING] = 0b0001000000000000000000000000000000000000000000000000000000000000;
 
-	//pieces[B_PAWN] = 0b0000000000000000000000000000000000000000000000001111111100000000;
-	//pieces[B_BISHOP] = 0b0000000000000000000000000000000000000000000000000000000000100100;
-	//pieces[B_KNIGHT] = 0b0000000000000000000000000000000000000000000000000000000001000010;
-	//pieces[B_ROOK] = 0b0000000000000000000000000000000000000000000000000000000010000001;
+	pieces[B_PAWN] = 0b0000000000000000000000000000000000000000000000001111111100000000;
+	pieces[B_BISHOP] = 0b0000000000000000000000000000000000000000000000000000000000100100;
+	pieces[B_KNIGHT] = 0b0000000000000000000000000000000000000000000000000000000001000010;
+	pieces[B_ROOK] = 0b0000000000000000000000000000000000000000000000000000000010000001;
 	pieces[B_QUEEN] = 0b0000000000000000000000000000000000000000000000000000000000001000;
-	//pieces[B_KING] = 0b0000000000000000000000000000000000000000000000000000000000010000;
+	pieces[B_KING] = 0b0000000000000000000000000000000000000000000000000000000000010000;
 	for (int i = 0; i < 6; i++) {
 		blackPieces = blackPieces | pieces[i];
 	}
@@ -42,34 +42,35 @@ bool Game::checkBishop(uint64_t move, uint64_t piece)
 {
 	//TODO: maybe try Move Rays, cuz i dont think this is gonna work, tho there is probably a way to make it work
 
-	uint64_t tmp = piece;
-	bool valid = true;
-	while (tmp != 0 && valid) {
-		tmp >>= 7;
-		if (tmp & whitePieces || tmp & blackPieces) valid = false;
-		if (tmp & move) return true;
-	}
-	tmp = piece;
-	valid = true;
-	while (tmp != 0 && valid) {
-		tmp >>= 9;
-		if (tmp & whitePieces || tmp & blackPieces) valid = false;
-		if (tmp & move) return true;
-	}
-	tmp = piece;
-	valid = true;
-	while (tmp != 0 && valid) {
-		tmp <<= 7;
-		if (tmp & whitePieces || tmp & blackPieces) valid = false;
-		if (tmp & move) return true;
-	}
-	tmp = piece;
-	valid = true;
-	while (tmp != 0 && valid) {
-		tmp <<= 9;
-		if (tmp & whitePieces || tmp & blackPieces) valid = false;
-		if (tmp & move) return true;
-	}
+	uint64_t allPieces = whitePieces | blackPieces;
+
+	uint64_t rays[4], moveMask = 0;
+	rays[0] = generateNWRay(piece);
+	rays[1] = generateNERay(piece);
+	rays[2] = generateSERay(piece);
+	rays[3] = generateSWRay(piece);
+
+	uint64_t NWBlocker = allPieces & rays[0];
+	NWBlocker = lastBit(NWBlocker != 0) ? (uint64_t)1 << (lastBit(NWBlocker)) : 0;
+	uint64_t NWBlockerRay = generateNWRay(NWBlocker);
+	moveMask |= rays[0] ^ NWBlockerRay;
+	
+	uint64_t NEBlocker = allPieces & rays[1];
+	NEBlocker = lastBit(NEBlocker != 0) ? (uint64_t)1 << (lastBit(NEBlocker)) : 0;
+	uint64_t NEBlockerRay = generateNWRay(NWBlocker);
+	moveMask |= rays[1] ^ NEBlockerRay;
+	
+	uint64_t SEBlocker = allPieces & rays[2];
+	SEBlocker = lastBit(SEBlocker != 0) ? (uint64_t)1 << (lastBit(SEBlocker)) : 0;
+	uint64_t SEBlockerRay = generateNWRay(SEBlocker);
+	moveMask |= rays[2] ^ SEBlockerRay;
+	
+	uint64_t SWBlocker = allPieces & rays[3];
+	SWBlocker = lastBit(SWBlocker != 0) ? (uint64_t)1 << (lastBit(SWBlocker)) : 0;
+	uint64_t SWBlockerRay = generateNWRay(SWBlocker);
+	moveMask |= rays[3] ^ SWBlockerRay;
+
+	return (moveMask & move);
 	return false;
 }
 
@@ -106,71 +107,122 @@ int log2_64(uint64_t value)
 	return tab64[((uint64_t)((value - (value >> 1)) * 0x07EDD5E59A4E28C2)) >> 58];
 }
 
-void Game::generateNorthRay(uint64_t square, uint64_t &output) {
-	if (!square)
-	{
-		output = 0;
-		return;
+uint64_t Game::generateNERay(uint64_t square) {
+	uint64_t output = 0;
+	//int col = log2_64(square) % 8;
+	//int row = log2_64(square) / 8;
+	while (square != 0) {
+		if (log2_64(square) % 8 == 0) {
+			break;
+		}
+		else {
+			square <<= 7;
+			output |= square;
+		}
 	}
+	return output;
+}
+
+uint64_t Game::generateNWRay(uint64_t square) {
+	uint64_t output = 0;
+	//int col = log2_64(square) % 8;
+	//int row = log2_64(square) / 8;
+	while (square != 0) {
+		if (log2_64(square) % 8 == 7) {
+			break;
+		}
+		else {
+			square <<= 9;
+			output |= square;
+		}
+	}
+	return output;
+}
+
+uint64_t Game::generateSERay(uint64_t square) {
+	uint64_t output = 0;
+	//int col = log2_64(square) % 8;
+	//int row = log2_64(square) / 8;
+	while (square != 0) {
+		if (log2_64(square) % 8 == 0) {
+			break;
+		}
+		else {
+  			square >>= 9;
+			output |= square;
+		}
+	}
+	return output;
+}
+
+uint64_t Game::generateSWRay(uint64_t square) {
+	uint64_t output = 0;
+	//int col = log2_64(square) % 8;
+	//int row = log2_64(square) / 8;
+	while (square != 0) {
+		if (log2_64(square) % 8 == 7) {
+			break;
+		}
+		else {
+			square >>= 7;
+			output |= square;
+		}
+	}
+	return output;
+}
+
+// These ray generations are all relative to the bitboad rather than the render
+uint64_t Game::generateNorthRay(uint64_t square) {
+	uint64_t output = 0;
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
-	output = 0;
 
 	// generate a north-pointing ray
 	for (int i = 0; i < row; i++) {
 		output |= ((uint64_t)1 << col) << (i * 8);
 	}
+	return output;
 }
 
-void Game::generateEastRay(uint64_t square, uint64_t &output) {
-	if (!square)
-	{
-		output = 0;
-		return;
-	}
+uint64_t Game::generateEastRay(uint64_t square) {
+	uint64_t output = 0;
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
-	output = 0;
+
 	// generate a east-pointing ray
 	for (int i = col+1; i < 8; i++) {
 		output |= ((uint64_t)1 << row * 8) << i;
 	}
-
+	return output;
 }
 
-void Game::generateSouthRay(uint64_t square, uint64_t &output) {
-	if (!square)
-	{
-		output = 0;
-		return;
-	}
+uint64_t Game::generateSouthRay(uint64_t square) {
+	uint64_t output = 0;
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
-	output = 0;
-
+	
 	// generate a south-pointing ray
 	for (int i = row+1; i < 8; i++) {
 		output |= ((uint64_t)1 << col) << (i * 8);
 	}
+
+	return output;
 }
 
-void Game::generateWestRay(uint64_t square, uint64_t &output) {
-	if (!square)
-	{
-		output = 0;
-		return;
-	}
+uint64_t  Game::generateWestRay(uint64_t square) {
+	uint64_t output = 0;
 	int col = log2_64(square) % 8;
 	int row = log2_64(square) / 8;
-	output = 0;
+
 	// generate a west-pointing ray
 	for (int i = 0; i < col; i++) {
 		output |= ((uint64_t)1 << row * 8) << i;
 	}
+	return output;
 }
+
 int Game::firstBit(uint64_t number) {
 	int cnt = -1;
-	//if (number) while (!(number & (1 << cnt++)));
 	while (number) {
 		cnt++;
 		number <<= 1;
@@ -194,36 +246,36 @@ bool Game::checkRook(uint64_t move, uint64_t piece)
 	uint64_t allPieces = whitePieces | blackPieces;
 
 	uint64_t rays[4], moveMask = 0;
-	generateNorthRay(piece, rays[0]);
-	generateEastRay( piece, rays[1]);
-	generateSouthRay(piece, rays[2]);
-	generateWestRay( piece, rays[3]);
+	rays[0] = generateNorthRay(piece);
+	rays[1] = generateEastRay( piece);
+	rays[2] = generateSouthRay(piece);
+	rays[3] = generateWestRay( piece);
 
 	uint64_t nBlocker = rays[0] & allPieces;
 	nBlocker = (lastBit(nBlocker) != 0) ? (uint64_t)1 << (lastBit(nBlocker)) : 0;
 	uint64_t nBlockerRay = 0;
-	generateNorthRay(nBlocker, nBlockerRay);
+	nBlockerRay = generateNorthRay(nBlocker);
 	moveMask |= rays[0] ^ nBlockerRay;
 
 	uint64_t eBlocker = rays[1] & allPieces;
 	eBlocker = (firstBit(eBlocker) != 0) ? (uint64_t)1 << firstBit(eBlocker) : 0;
 	uint64_t eBlockerRay = 0;
-	generateEastRay(eBlocker, eBlockerRay);
+	eBlockerRay = generateEastRay(eBlocker);
 	moveMask |= rays[1] ^ eBlockerRay;
-	
+
 	uint64_t sBlocker = rays[2] & allPieces;
-	sBlocker = (firstBit(sBlocker) != 0)? (uint64_t)1 << (firstBit(sBlocker)) : 0;
+	sBlocker = (firstBit(sBlocker) != 0) ? (uint64_t)1 << (firstBit(sBlocker)) : 0;
 	uint64_t sBlockerRay = 0;
-	generateSouthRay(sBlocker, sBlockerRay);
+	sBlockerRay = generateSouthRay(sBlocker);
 	moveMask |= rays[2] ^ sBlockerRay;
 
 	uint64_t wBlocker = rays[3] & allPieces;
 	wBlocker = (lastBit(wBlocker) != 0) ? (uint64_t)1 << lastBit(wBlocker) : 0;
 	uint64_t wBlockerRay = 0;
-	generateWestRay(wBlocker, wBlockerRay);
+	wBlockerRay = generateWestRay(wBlocker);
 	moveMask |= rays[3] ^ wBlockerRay;
 
-	return (moveMask & move)? true : false;
+	return (moveMask & move);
 }
 
 bool Game::checkPawn(uint64_t move, uint64_t piece, bool isWhite)

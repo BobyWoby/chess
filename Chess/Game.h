@@ -21,10 +21,14 @@ private:
 	bool checkPawn(uint64_t move, uint64_t piece, bool isWhite);
 	bool checkKing(uint64_t move, uint64_t piece);
 
-	void generateNorthRay(uint64_t square, uint64_t &output);
-	void generateEastRay(uint64_t square, uint64_t  &output);
-	void generateSouthRay(uint64_t square, uint64_t &output);
-	void generateWestRay(uint64_t square, uint64_t  &output);
+	uint64_t generateNERay(uint64_t square);
+	uint64_t generateNWRay(uint64_t square);
+	uint64_t generateSERay(uint64_t square);
+	uint64_t generateSWRay(uint64_t square);
+	uint64_t generateNorthRay(uint64_t square);
+	uint64_t generateEastRay(uint64_t square);
+	uint64_t generateSouthRay(uint64_t square);
+	uint64_t generateWestRay(uint64_t square);
 	int firstBit(uint64_t number);
 	int lastBit(uint64_t number);
 public:
